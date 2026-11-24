@@ -4,8 +4,8 @@ import com.elemental.tech.workitems.domain.WorkItem;
 import jakarta.validation.constraints.NotNull;
 
 public record PatchWorkItemRequest(
-    @NotNull
+    @NotNull(message = "Version must be provided")
     Long version,
-    @NotNull
+    @NotNull(message = "Status must be provided")
     WorkItem.Status status
 ){}

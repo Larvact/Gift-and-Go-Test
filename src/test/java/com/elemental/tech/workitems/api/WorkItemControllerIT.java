@@ -1,7 +1,7 @@
 package com.elemental.tech.workitems.api;
 
-// TODO: 2. Left imports as a hint.
 import com.elemental.tech.App;
+import com.elemental.tech.workitems.api.dto.PatchWorkItemRequest;
 import com.elemental.tech.workitems.api.dto.WorkItemResponse;
 import com.elemental.tech.workitems.domain.WorkItem;
 import com.elemental.tech.workitems.persistence.WorkItemRepository;
@@ -22,8 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.elemental.tech.workitems.api.dto.CreateWorkItemRequest;
@@ -42,6 +41,7 @@ class WorkItemControllerIT {
 
     private static final String TITLE = "Hello";
     private static final String DESCRIPTION = "World";
+    private static final long VERSION = 0;
     private static final CreateWorkItemRequest.Priority PRIORITY = CreateWorkItemRequest.Priority.MEDIUM;
     private static final CreateWorkItemRequest STANDARD_WORK_ITEM_REQUEST = new CreateWorkItemRequest(TITLE, DESCRIPTION, PRIORITY);
 
@@ -193,8 +193,69 @@ class WorkItemControllerIT {
     class PatchWorkItemByIdEndpointTest{
 
         @Test
-        void createWorkItem_getByIdEndpoint_okResponse_bodyValidated(){
+        void createWorkItem_validVersionStatus_patchEndpoint_okResponse_bodyValidated() throws Exception {
+            final PatchWorkItemRequest validVersionRequest = new PatchWorkItemRequest(VERSION, WorkItem.Status.IN_PROGRESS);
+            createValidWorkItem(STANDARD_WORK_ITEM_REQUEST);
 
+            final MvcResult result = mockMvc.perform(patch(WORK_ITEMS_BY_ID_PATH, 1L)
+                            .accept(MediaType.APPLICATION_JSON)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validVersionRequest)))
+                    .andExpect(status().isOk())
+                    .andReturn();
+            final String workItemResponseJson = result.getResponse().getContentAsString();
+            final WorkItemResponse workItemResponse = objectMapper.readValue(workItemResponseJson, WorkItemResponse.class);
+
+            assertThat(workItemResponse)
+                    .has(new Condition<>(res -> res.id() > 0, "Id has been generated"))
+                    .has(new Condition<>(res -> Objects.nonNull(res.createdAt()), "Created at has been generated"))
+                    .extracting(
+                            WorkItemResponse::title,
+                            WorkItemResponse::description,
+                            WorkItemResponse::priority,
+                            WorkItemResponse::status)
+                    .containsExactly(
+                            TITLE,
+                            DESCRIPTION,
+                            PRIORITY.name(),
+                            WorkItem.Status.IN_PROGRESS.name()
+                    );
+        }
+
+        @Test
+        void nullVersion_callPatchWorkItemEndpoint_400ResponseWithDetail() throws Exception {
+            final PatchWorkItemRequest emptyVersionRequest = new PatchWorkItemRequest(null, WorkItem.Status.IN_PROGRESS);
+
+            final MvcResult result = mockMvc.perform(patch(WORK_ITEMS_BY_ID_PATH, 1L)
+                            .accept(MediaType.APPLICATION_JSON)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(emptyVersionRequest)))
+                    .andExpect(status().isBadRequest())
+                    .andReturn();
+            final String problemDetailJson = result.getResponse().getContentAsString();
+            final ProblemDetail problemDetail = objectMapper.readValue(problemDetailJson, ProblemDetail.class);
+
+            assertEquals(400, result.getResponse().getStatus());
+            assertThat(problemDetail)
+                    .extracting(
+                            ProblemDetail::getTitle,
+                            ProblemDetail::getStatus,
+                            ProblemDetail::getDetail)
+                    .containsExactly(
+                            "Validation Failed",
+                            400,
+                            "Version must be provided");
+        }
+
+        @Test
+        void nullStatus_callPatchWorkItemEndpoint_400Response() throws Exception {
+            final PatchWorkItemRequest emptyVersionRequest = new PatchWorkItemRequest(VERSION, null);
+
+            mockMvc.perform(patch(WORK_ITEMS_BY_ID_PATH, 1L)
+                            .accept(MediaType.APPLICATION_JSON)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(emptyVersionRequest)))
+                    .andExpect(status().isBadRequest());
         }
     }
 

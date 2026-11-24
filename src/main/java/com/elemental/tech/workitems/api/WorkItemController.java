@@ -1,8 +1,11 @@
 package com.elemental.tech.workitems.api;
 
 import com.elemental.tech.workitems.api.dto.CreateWorkItemRequest;
+import com.elemental.tech.workitems.api.dto.PatchWorkItemModel;
+import com.elemental.tech.workitems.api.dto.PatchWorkItemRequest;
 import com.elemental.tech.workitems.api.dto.WorkItemResponse;
 import com.elemental.tech.workitems.service.WorkItemService;
+import com.elemental.tech.workitems.service.WorkitemPatchMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -34,5 +37,9 @@ public class WorkItemController {
         return service.get(id);
     }
 
-    // TODO: implement PATCH endpoint for status transition with validation & concur strategy.
+    @PatchMapping(path = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public WorkItemResponse patch(@PathVariable long id, @Valid @RequestBody PatchWorkItemRequest request) {
+        final PatchWorkItemModel patchWorkItemModel = WorkitemPatchMapper.toModel(id, request);
+        return service.patch(patchWorkItemModel);
+    }
 }
