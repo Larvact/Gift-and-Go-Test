@@ -1,5 +1,6 @@
 package com.elemental.tech.workitems.api;
 
+import com.elemental.tech.workitems.exceptions.OptimisticLockingException;
 import com.elemental.tech.workitems.exceptions.ResourceNotFoundException;
 import com.elemental.tech.workitems.exceptions.StatusTransitionException;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
@@ -45,6 +46,13 @@ public class GlobalExceptionController {
     public ProblemDetail handleStatusTransitionException(final StatusTransitionException exception) {
         final ProblemDetail problemDetail = initialiseProblemDetail(HttpStatus.UNPROCESSABLE_ENTITY, exception);
         problemDetail.setTitle("Status could not be changed");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(OptimisticLockingException.class)
+    public ProblemDetail handleOptimisticLockingException(final OptimisticLockingException exception) {
+        final ProblemDetail problemDetail = initialiseProblemDetail(HttpStatus.CONFLICT, exception);
+        problemDetail.setTitle("Version provided in the request is out of date");
         return problemDetail;
     }
 

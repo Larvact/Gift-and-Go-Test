@@ -1,5 +1,6 @@
 package com.elemental.tech.workitems.api;
 
+import com.elemental.tech.workitems.exceptions.OptimisticLockingException;
 import com.elemental.tech.workitems.exceptions.ResourceNotFoundException;
 import com.elemental.tech.workitems.exceptions.StatusTransitionException;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +49,23 @@ class GlobalExceptionControllerTest {
                         ProblemDetail::getStatus,
                         ProblemDetail::getDetail)
                 .containsExactly("Status could not be changed", 422, EXCEPTION_MESSAGE);
+        assertThat(problemDetail.getProperties())
+                .extracting(p -> p.get("timestamp"))
+                .isNotNull();
+    }
+
+    @Test
+    void handleOptimisticLockingException_problemDetailGenerated(){
+        final OptimisticLockingException exception = new OptimisticLockingException(EXCEPTION_MESSAGE);
+
+        final ProblemDetail problemDetail = globalExceptionController.handleOptimisticLockingException(exception);
+
+        assertThat(problemDetail)
+                .extracting(
+                        ProblemDetail::getTitle,
+                        ProblemDetail::getStatus,
+                        ProblemDetail::getDetail)
+                .containsExactly("Version provided in the request is out of date", 409, EXCEPTION_MESSAGE);
         assertThat(problemDetail.getProperties())
                 .extracting(p -> p.get("timestamp"))
                 .isNotNull();
