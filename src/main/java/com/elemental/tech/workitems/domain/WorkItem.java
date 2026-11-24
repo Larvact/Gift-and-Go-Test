@@ -1,7 +1,9 @@
 package com.elemental.tech.workitems.domain;
 
 import java.time.Instant;
+import java.util.function.Predicate;
 
+import com.elemental.tech.workitems.exceptions.StatusTransitionException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -68,7 +70,9 @@ public class WorkItem {
     }
 
     public void transitionTo(Status newStatus) {
-        // TODO: enforce transitions (OPEN -> IN_PROGRESS -> DONE, etc.) and decide what to do on invalid transitions...
+        if(this.status != null && !this.status.isNewStatusValid().test(newStatus)){
+            throw new StatusTransitionException(String.format("Cannot transition from status: %s to new status %s", this.status.name(), newStatus.name()));
+        }
         this.status = newStatus;
         touch();
     }
@@ -79,10 +83,32 @@ public class WorkItem {
 
     @RequiredArgsConstructor
     public enum Status {
-        DONE,
-        CANCELLED,
-        IN_PROGRESS,
-        OPEN;
+        DONE {
+            @Override
+            Predicate<Status> isNewStatusValid() {
+                return (newStatus) -> false;
+            }
+        },
+        CANCELLED {
+            @Override
+            Predicate<Status> isNewStatusValid() {
+                return (newStatus) -> false;
+            }
+        },
+        IN_PROGRESS {
+            @Override
+            Predicate<Status> isNewStatusValid() {
+                return (newStatus) -> newStatus == DONE || newStatus == CANCELLED;
+            }
+        },
+        OPEN {
+            @Override
+            Predicate<Status> isNewStatusValid() {
+                return (newStatus) -> newStatus == IN_PROGRESS || newStatus == CANCELLED;
+            }
+        };
+
+        abstract Predicate<Status> isNewStatusValid();
     }
 
     public enum Priority {
