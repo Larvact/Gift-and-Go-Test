@@ -1,0 +1,25 @@
+#TODO: Anything to do here?
+spring:
+  application:
+    name: ec-temp-int
+  datasource:
+    url: ${DB_URL:jdbc:h2:mem:elemental-int;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}
+    username: ${DB_USERNAME:ec}
+    password: ${DB_PASSWORD:}
+  h2:
+    console:
+      enabled: ${IS_H2_GUI_ENABLED:false}
+      path: /h2-console
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+
+logging:
+  level:
+    root: ${ROOT_LOG_LEVEL:info}
+    org.hibernate.SQL: ${HIBERNATE_LOG_LEVEL:warn}
+    org.springframework.web: ${SPRING_FRAMEWORK_LOG_LEVEL:warn}

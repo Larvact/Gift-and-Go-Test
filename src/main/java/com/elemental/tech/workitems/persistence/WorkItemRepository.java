@@ -1,0 +1,10 @@
+package com.elemental.tech.workitems.persistence;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.elemental.tech.workitems.domain.WorkItem;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
+public interface WorkItemRepository extends JpaRepository<WorkItem, Long>{
+    // TODO: add query methods for filtering & sorting & pagination.
+}
