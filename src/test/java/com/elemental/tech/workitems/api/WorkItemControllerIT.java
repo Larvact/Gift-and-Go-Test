@@ -257,6 +257,24 @@ class WorkItemControllerIT {
                             .content(objectMapper.writeValueAsString(emptyVersionRequest)))
                     .andExpect(status().isBadRequest());
         }
+
+        @Test
+        void createWorkItem_doublePatchCallWithoutAmendingVersion_conflictResponseOnSecondCall() throws Exception {
+            final PatchWorkItemRequest validVersionRequest = new PatchWorkItemRequest(VERSION, WorkItem.Status.IN_PROGRESS);
+            createValidWorkItem(STANDARD_WORK_ITEM_REQUEST);
+
+            mockMvc.perform(patch(WORK_ITEMS_BY_ID_PATH, 1L)
+                            .accept(MediaType.APPLICATION_JSON)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validVersionRequest)))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(patch(WORK_ITEMS_BY_ID_PATH, 1L)
+                            .accept(MediaType.APPLICATION_JSON)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(validVersionRequest)))
+                    .andExpect(status().isConflict());
+        }
     }
 
     private MvcResult createWorkItem(final CreateWorkItemRequest createWorkItemRequest) throws Exception {
