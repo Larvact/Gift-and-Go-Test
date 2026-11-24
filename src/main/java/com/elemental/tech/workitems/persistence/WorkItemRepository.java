@@ -5,6 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.elemental.tech.workitems.domain.WorkItem;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface WorkItemRepository extends JpaRepository<WorkItem, Long>{
-    // TODO: add query methods for filtering & sorting & pagination.
+public interface WorkItemRepository extends JpaRepository<WorkItem, Long>, JpaSpecificationExecutor<WorkItem>{
 }
