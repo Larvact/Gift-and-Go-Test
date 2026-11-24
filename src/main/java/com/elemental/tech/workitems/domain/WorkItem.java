@@ -11,12 +11,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 
-/*
-    TODO: Refactor this, use a library that will simplify this if we can?.
- */
 @Entity
+@Getter
+@NoArgsConstructor
 @Table(name = "work_item")
 public class WorkItem {
 
@@ -47,9 +48,6 @@ public class WorkItem {
     @Column(nullable = false)
     private Instant updatedAt;
 
-    protected WorkItem() {
-    }
-
     public WorkItem(String title, String description, Priority priority) {
         this.title = title;
         this.description = description;
@@ -77,38 +75,6 @@ public class WorkItem {
 
     private void touch() {
         this.updatedAt = Instant.now();
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public Long getVersion() {
-        return version;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public Status getStatus() {
-        return status;
-    }
-
-    public Priority getPriority() {
-        return priority;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
     }
 
     @RequiredArgsConstructor
