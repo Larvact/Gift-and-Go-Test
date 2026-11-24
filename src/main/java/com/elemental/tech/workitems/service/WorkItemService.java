@@ -4,6 +4,7 @@ import com.elemental.tech.workitems.api.dto.CreateWorkItemRequest;
 import com.elemental.tech.workitems.api.dto.PatchWorkItemModel;
 import com.elemental.tech.workitems.api.dto.WorkItemResponse;
 import com.elemental.tech.workitems.domain.WorkItem;
+import com.elemental.tech.workitems.exceptions.OptimisticLockingException;
 import com.elemental.tech.workitems.exceptions.ResourceNotFoundException;
 import com.elemental.tech.workitems.persistence.WorkItemRepository;
 import org.springframework.stereotype.Service;
@@ -42,15 +43,24 @@ public class WorkItemService {
 
     @Transactional(readOnly = true)
     public WorkItemResponse get(long id) {
-        WorkItem workItem = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("work item not found: " + id));
+        WorkItem workItem = findById(id);
         return WorkItemMapper.toResponse(workItem);
     }
 
     @Transactional
     public WorkItemResponse patch(final PatchWorkItemModel patchWorkItemModel) {
-        final WorkItemResponse workItemResponse = get(patchWorkItemModel.id());
+        final WorkItem workItem = findById(patchWorkItemModel.id());
+        final long upToDateVersion = workItem.getVersion();
+        final long requestVersion = patchWorkItemModel.version();
+        if(requestVersion < upToDateVersion){
+            throw new OptimisticLockingException(String.format("Failed to patch the WorkItem with id: %s as the requested version is out of date", patchWorkItemModel.id()));
+        }
 
         return null;
+    }
+
+    private WorkItem findById(final long id){
+        return repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("work item not found: " + id));
     }
 }
