@@ -6,14 +6,18 @@ import com.elemental.tech.workitems.api.dto.WorkItemResponse;
 import com.elemental.tech.workitems.domain.WorkItem;
 import com.elemental.tech.workitems.persistence.WorkItemRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.assertj.core.api.Assertions;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -27,7 +31,6 @@ import com.elemental.tech.workitems.api.dto.CreateWorkItemRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.test.web.servlet.MvcResult;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 
@@ -60,7 +63,7 @@ class WorkItemControllerIT {
 
         @Test
         void createNewWorkItem() throws Exception {
-            final MvcResult result = createWorkItem(STANDARD_WORK_ITEM_REQUEST);
+            final MvcResult result = createValidWorkItem(STANDARD_WORK_ITEM_REQUEST);
             final String workItemResponseJson = result.getResponse().getContentAsString();
             final WorkItemResponse workItemResponse = objectMapper.readValue(workItemResponseJson, WorkItemResponse.class);
 
@@ -79,6 +82,45 @@ class WorkItemControllerIT {
                             WorkItem.Status.OPEN.name()
                     );
         }
+
+        @NullAndEmptySource
+        @ParameterizedTest
+        void emptyTitle_callCreateNewWorkItemEndpoint_400ResponseWithDetail(final String title) throws Exception {
+            final CreateWorkItemRequest emptyTitleRequest = new CreateWorkItemRequest(title, DESCRIPTION, PRIORITY);
+
+            final MvcResult result = createWorkItem(emptyTitleRequest);
+
+            assertEquals(400, result.getResponse().getStatus());
+        }
+
+        @Test
+        void titleSizeOver120_callCreateNewWorkItemEndpoint_400ResponseWithDetail() throws Exception {
+            final String title = RandomStringUtils.secure().nextAlphabetic(121);
+            final CreateWorkItemRequest emptyTitleRequest = new CreateWorkItemRequest(title, DESCRIPTION, PRIORITY);
+
+            final MvcResult result = createWorkItem(emptyTitleRequest);
+
+            assertEquals(400, result.getResponse().getStatus());
+        }
+
+        @Test
+        void descriptionSizeOver2000_callCreateNewWorkItemEndpoint_400ResponseWithDetail() throws Exception {
+            final String description = RandomStringUtils.secure().nextAlphabetic(2001);
+            final CreateWorkItemRequest emptyTitleRequest = new CreateWorkItemRequest(TITLE, description, PRIORITY);
+
+            final MvcResult result = createWorkItem(emptyTitleRequest);
+
+            assertEquals(400, result.getResponse().getStatus());
+        }
+
+        @Test
+        void priorityNull_callCreateNewWorkItemEndpoint_400ResponseWithDetail() throws Exception {
+            final CreateWorkItemRequest emptyTitleRequest = new CreateWorkItemRequest(TITLE, DESCRIPTION, null);
+
+            final MvcResult result = createWorkItem(emptyTitleRequest);
+
+            assertEquals(400, result.getResponse().getStatus());
+        }
     }
 
     @Nested
@@ -86,7 +128,7 @@ class WorkItemControllerIT {
 
         @Test
         void reqShouldReturnOK() throws Exception {
-            createWorkItem(STANDARD_WORK_ITEM_REQUEST);
+            createValidWorkItem(STANDARD_WORK_ITEM_REQUEST);
 
             final MvcResult result = mockMvc.perform(get(WORK_ITEMS_PATH))
                     .andExpect(status().isOk())
@@ -109,7 +151,7 @@ class WorkItemControllerIT {
 
         @Test
         void createWorkItem_getByIdEndpoint_okResponse_bodyValidated() throws Exception {
-            final MvcResult createWorkItemResult = createWorkItem(STANDARD_WORK_ITEM_REQUEST);
+            final MvcResult createWorkItemResult = createValidWorkItem(STANDARD_WORK_ITEM_REQUEST);
             final String createWorkItemJson = createWorkItemResult.getResponse().getContentAsString();
             final WorkItemResponse createWorkItemResponse = objectMapper.readValue(createWorkItemJson, WorkItemResponse.class);
             final long id = createWorkItemResponse.id();
@@ -147,6 +189,14 @@ class WorkItemControllerIT {
     }
 
     private MvcResult createWorkItem(final CreateWorkItemRequest createWorkItemRequest) throws Exception {
+        return mockMvc.perform(post(WORK_ITEMS_PATH)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createWorkItemRequest)))
+                .andReturn();
+    }
+
+    private MvcResult createValidWorkItem(final CreateWorkItemRequest createWorkItemRequest) throws Exception {
         return mockMvc.perform(post(WORK_ITEMS_PATH)
                         .accept(MediaType.APPLICATION_JSON)
                         .contentType(MediaType.APPLICATION_JSON)
