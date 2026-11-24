@@ -1,6 +1,7 @@
 package com.elemental.tech.workitems.service;
 
 import com.elemental.tech.workitems.api.dto.CreateWorkItemRequest;
+import com.elemental.tech.workitems.api.dto.PatchWorkItemModel;
 import com.elemental.tech.workitems.api.dto.WorkItemResponse;
 import com.elemental.tech.workitems.domain.WorkItem;
 import com.elemental.tech.workitems.exceptions.ResourceNotFoundException;
@@ -42,8 +43,14 @@ public class WorkItemService {
     @Transactional(readOnly = true)
     public WorkItemResponse get(long id) {
         WorkItem workItem = repository.findById(id)
-                // TODO: add global exception mapping.
                 .orElseThrow(() -> new ResourceNotFoundException("work item not found: " + id));
         return WorkItemMapper.toResponse(workItem);
+    }
+
+    @Transactional
+    public WorkItemResponse patch(final PatchWorkItemModel patchWorkItemModel) {
+        final WorkItemResponse workItemResponse = get(patchWorkItemModel.id());
+
+        return null;
     }
 }

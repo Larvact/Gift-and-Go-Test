@@ -1,5 +1,7 @@
 package com.elemental.tech.workitems.service;
 
+import com.elemental.tech.workitems.api.dto.PatchWorkItemModel;
+import com.elemental.tech.workitems.domain.WorkItem;
 import com.elemental.tech.workitems.exceptions.ResourceNotFoundException;
 import com.elemental.tech.workitems.persistence.WorkItemRepository;
 import org.junit.jupiter.api.Test;
@@ -30,9 +32,19 @@ class WorkItemServiceTest {
 
     @Test
     void noWorkItemInDb_get_throwsResourceNotFoundException(){
-        when(workItemRepository.findById(any())).thenReturn(Optional.empty());
+        when(workItemRepository.findById(ID)).thenReturn(Optional.empty());
 
         final ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> workItemService.get(ID));
+
+        assertEquals(format("work item not found: %d", ID), exception.getMessage());
+    }
+
+    @Test
+    void noWorkItemInDb_patch_throwsResourceNotFoundException(){
+        final PatchWorkItemModel patchWorkItemModel = new PatchWorkItemModel(ID, 2L, WorkItem.Status.IN_PROGRESS);
+        when(workItemRepository.findById(ID)).thenReturn(Optional.empty());
+
+        final ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () -> workItemService.patch(patchWorkItemModel));
 
         assertEquals(format("work item not found: %d", ID), exception.getMessage());
     }
