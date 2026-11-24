@@ -1,18 +1,37 @@
 package com.elemental.tech.workitems.api;
 
 import com.elemental.tech.workitems.exceptions.ResourceNotFoundException;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionController {
 
+    private static final String ERRORS_KEY = "errors";
     private static final String TIMESTAMP_KEY = "timestamp";
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ProblemDetail handleMethodArgumentNotValidException(final MethodArgumentNotValidException exception) {
+        final ProblemDetail problemDetail = initialiseProblemDetail(HttpStatus.BAD_REQUEST, exception);
+        problemDetail.setTitle("Validation Failed");
+        final List<FieldError> fieldErrors = exception.getBindingResult().getFieldErrors();
+        final String errorMessage = fieldErrors.stream()
+                .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                .distinct()
+                .collect(Collectors.joining(", "));
+        problemDetail.setDetail(errorMessage);
+        return problemDetail;
+    }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ProblemDetail handleResourceNotFoundException(final ResourceNotFoundException exception) {

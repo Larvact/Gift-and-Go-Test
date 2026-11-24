@@ -9,7 +9,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -17,8 +16,8 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -89,12 +88,23 @@ class WorkItemControllerIT {
             final CreateWorkItemRequest emptyTitleRequest = new CreateWorkItemRequest(title, DESCRIPTION, PRIORITY);
 
             final MvcResult result = createWorkItem(emptyTitleRequest);
+            final String problemDetailJson = result.getResponse().getContentAsString();
+            final ProblemDetail problemDetail = objectMapper.readValue(problemDetailJson, ProblemDetail.class);
 
             assertEquals(400, result.getResponse().getStatus());
+            assertThat(problemDetail)
+                    .extracting(
+                            ProblemDetail::getTitle,
+                            ProblemDetail::getStatus,
+                            ProblemDetail::getDetail)
+                    .containsExactly(
+                            "Validation Failed",
+                            400,
+                            "Title must be provided");
         }
 
         @Test
-        void titleSizeOver120_callCreateNewWorkItemEndpoint_400ResponseWithDetail() throws Exception {
+        void titleSizeOver120_callCreateNewWorkItemEndpoint_400Response() throws Exception {
             final String title = RandomStringUtils.secure().nextAlphabetic(121);
             final CreateWorkItemRequest emptyTitleRequest = new CreateWorkItemRequest(title, DESCRIPTION, PRIORITY);
 
@@ -104,7 +114,7 @@ class WorkItemControllerIT {
         }
 
         @Test
-        void descriptionSizeOver2000_callCreateNewWorkItemEndpoint_400ResponseWithDetail() throws Exception {
+        void descriptionSizeOver2000_callCreateNewWorkItemEndpoint_400Response() throws Exception {
             final String description = RandomStringUtils.secure().nextAlphabetic(2001);
             final CreateWorkItemRequest emptyTitleRequest = new CreateWorkItemRequest(TITLE, description, PRIORITY);
 
@@ -114,7 +124,7 @@ class WorkItemControllerIT {
         }
 
         @Test
-        void priorityNull_callCreateNewWorkItemEndpoint_400ResponseWithDetail() throws Exception {
+        void priorityNull_callCreateNewWorkItemEndpoint_400Response() throws Exception {
             final CreateWorkItemRequest emptyTitleRequest = new CreateWorkItemRequest(TITLE, DESCRIPTION, null);
 
             final MvcResult result = createWorkItem(emptyTitleRequest);
