@@ -28,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.elemental.tech.workitems.api.dto.CreateWorkItemRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultMatcher;
 
 import java.util.List;
 import java.util.Objects;
@@ -62,7 +63,7 @@ class WorkItemControllerIT {
 
         @Test
         void createNewWorkItem() throws Exception {
-            final MvcResult result = createValidWorkItem(STANDARD_WORK_ITEM_REQUEST);
+            final MvcResult result = createWorkItem(STANDARD_WORK_ITEM_REQUEST, status().isCreated());
             final String workItemResponseJson = result.getResponse().getContentAsString();
             final WorkItemResponse workItemResponse = objectMapper.readValue(workItemResponseJson, WorkItemResponse.class);
 
@@ -87,11 +88,10 @@ class WorkItemControllerIT {
         void emptyTitle_callCreateNewWorkItemEndpoint_400ResponseWithDetail(final String title) throws Exception {
             final CreateWorkItemRequest emptyTitleRequest = new CreateWorkItemRequest(title, DESCRIPTION, PRIORITY);
 
-            final MvcResult result = createWorkItem(emptyTitleRequest);
+            final MvcResult result = createWorkItem(emptyTitleRequest, status().isBadRequest());
             final String problemDetailJson = result.getResponse().getContentAsString();
             final ProblemDetail problemDetail = objectMapper.readValue(problemDetailJson, ProblemDetail.class);
 
-            assertEquals(400, result.getResponse().getStatus());
             assertThat(problemDetail)
                     .extracting(
                             ProblemDetail::getTitle,
@@ -108,9 +108,7 @@ class WorkItemControllerIT {
             final String title = RandomStringUtils.secure().nextAlphabetic(121);
             final CreateWorkItemRequest emptyTitleRequest = new CreateWorkItemRequest(title, DESCRIPTION, PRIORITY);
 
-            final MvcResult result = createWorkItem(emptyTitleRequest);
-
-            assertEquals(400, result.getResponse().getStatus());
+            createWorkItem(emptyTitleRequest, status().isBadRequest());
         }
 
         @Test
@@ -118,18 +116,14 @@ class WorkItemControllerIT {
             final String description = RandomStringUtils.secure().nextAlphabetic(2001);
             final CreateWorkItemRequest emptyTitleRequest = new CreateWorkItemRequest(TITLE, description, PRIORITY);
 
-            final MvcResult result = createWorkItem(emptyTitleRequest);
-
-            assertEquals(400, result.getResponse().getStatus());
+            createWorkItem(emptyTitleRequest, status().isBadRequest());
         }
 
         @Test
         void priorityNull_callCreateNewWorkItemEndpoint_400Response() throws Exception {
             final CreateWorkItemRequest emptyTitleRequest = new CreateWorkItemRequest(TITLE, DESCRIPTION, null);
 
-            final MvcResult result = createWorkItem(emptyTitleRequest);
-
-            assertEquals(400, result.getResponse().getStatus());
+            createWorkItem(emptyTitleRequest, status().isBadRequest());
         }
     }
 
@@ -138,7 +132,7 @@ class WorkItemControllerIT {
 
         @Test
         void reqShouldReturnOK() throws Exception {
-            createValidWorkItem(STANDARD_WORK_ITEM_REQUEST);
+            createWorkItem(STANDARD_WORK_ITEM_REQUEST, status().isCreated());
 
             final MvcResult result = mockMvc.perform(get(WORK_ITEMS_PATH))
                     .andExpect(status().isOk())
@@ -161,10 +155,7 @@ class WorkItemControllerIT {
 
         @Test
         void createWorkItem_getByIdEndpoint_okResponse_bodyValidated() throws Exception {
-            final MvcResult createWorkItemResult = createValidWorkItem(STANDARD_WORK_ITEM_REQUEST);
-            final String createWorkItemJson = createWorkItemResult.getResponse().getContentAsString();
-            final WorkItemResponse createWorkItemResponse = objectMapper.readValue(createWorkItemJson, WorkItemResponse.class);
-            final long id = createWorkItemResponse.id();
+            final long id = createValidWorkItemReturnId();
 
             final MvcResult result = mockMvc.perform(get(WORK_ITEMS_BY_ID_PATH, id))
                     .andExpect(status().isOk())
@@ -195,9 +186,9 @@ class WorkItemControllerIT {
         @Test
         void createWorkItem_validVersionStatus_patchEndpoint_okResponse_bodyValidated() throws Exception {
             final PatchWorkItemRequest validVersionRequest = new PatchWorkItemRequest(VERSION, WorkItem.Status.IN_PROGRESS);
-            createValidWorkItem(STANDARD_WORK_ITEM_REQUEST);
+            final long id = createValidWorkItemReturnId();
 
-            final MvcResult result = mockMvc.perform(patch(WORK_ITEMS_BY_ID_PATH, 1L)
+            final MvcResult result = mockMvc.perform(patch(WORK_ITEMS_BY_ID_PATH, id)
                             .accept(MediaType.APPLICATION_JSON)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validVersionRequest)))
@@ -261,15 +252,15 @@ class WorkItemControllerIT {
         @Test
         void createWorkItem_doublePatchCallWithoutAmendingVersion_conflictResponseOnSecondCall() throws Exception {
             final PatchWorkItemRequest validVersionRequest = new PatchWorkItemRequest(VERSION, WorkItem.Status.IN_PROGRESS);
-            createValidWorkItem(STANDARD_WORK_ITEM_REQUEST);
+            final long id = createValidWorkItemReturnId();
 
-            mockMvc.perform(patch(WORK_ITEMS_BY_ID_PATH, 1L)
+            mockMvc.perform(patch(WORK_ITEMS_BY_ID_PATH, id)
                             .accept(MediaType.APPLICATION_JSON)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validVersionRequest)))
                     .andExpect(status().isOk());
 
-            mockMvc.perform(patch(WORK_ITEMS_BY_ID_PATH, 1L)
+            mockMvc.perform(patch(WORK_ITEMS_BY_ID_PATH, id)
                             .accept(MediaType.APPLICATION_JSON)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(validVersionRequest)))
@@ -277,20 +268,19 @@ class WorkItemControllerIT {
         }
     }
 
-    private MvcResult createWorkItem(final CreateWorkItemRequest createWorkItemRequest) throws Exception {
+    private MvcResult createWorkItem(final CreateWorkItemRequest createWorkItemRequest, ResultMatcher responseStatusMatcher) throws Exception {
         return mockMvc.perform(post(WORK_ITEMS_PATH)
                         .accept(MediaType.APPLICATION_JSON)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createWorkItemRequest)))
+                .andExpect(responseStatusMatcher)
                 .andReturn();
     }
 
-    private MvcResult createValidWorkItem(final CreateWorkItemRequest createWorkItemRequest) throws Exception {
-        return mockMvc.perform(post(WORK_ITEMS_PATH)
-                        .accept(MediaType.APPLICATION_JSON)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createWorkItemRequest)))
-                .andExpect(status().isCreated())
-                .andReturn();
+    private long createValidWorkItemReturnId() throws Exception {
+        final MvcResult createWorkItemResult = createWorkItem(STANDARD_WORK_ITEM_REQUEST, status().isCreated());
+        final String createWorkItemJson = createWorkItemResult.getResponse().getContentAsString();
+        final WorkItemResponse createWorkItemResponse = objectMapper.readValue(createWorkItemJson, WorkItemResponse.class);
+        return createWorkItemResponse.id();
     }
 }
