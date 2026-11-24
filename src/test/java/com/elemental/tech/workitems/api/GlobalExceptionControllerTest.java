@@ -1,6 +1,7 @@
 package com.elemental.tech.workitems.api;
 
 import com.elemental.tech.workitems.exceptions.ResourceNotFoundException;
+import com.elemental.tech.workitems.exceptions.StatusTransitionException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ProblemDetail;
@@ -30,6 +31,23 @@ class GlobalExceptionControllerTest {
                         ProblemDetail::getStatus,
                         ProblemDetail::getDetail)
                 .containsExactly("Resource not found", 404, EXCEPTION_MESSAGE);
+        assertThat(problemDetail.getProperties())
+                .extracting(p -> p.get("timestamp"))
+                .isNotNull();
+    }
+
+    @Test
+    void handleStatusTransitionException_problemDetailGenerated(){
+        final StatusTransitionException exception = new StatusTransitionException(EXCEPTION_MESSAGE);
+
+        final ProblemDetail problemDetail = globalExceptionController.handleStatusTransitionException(exception);
+
+        assertThat(problemDetail)
+                .extracting(
+                        ProblemDetail::getTitle,
+                        ProblemDetail::getStatus,
+                        ProblemDetail::getDetail)
+                .containsExactly("Status could not be changed", 422, EXCEPTION_MESSAGE);
         assertThat(problemDetail.getProperties())
                 .extracting(p -> p.get("timestamp"))
                 .isNotNull();

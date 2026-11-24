@@ -1,6 +1,7 @@
 package com.elemental.tech.workitems.api;
 
 import com.elemental.tech.workitems.exceptions.ResourceNotFoundException;
+import com.elemental.tech.workitems.exceptions.StatusTransitionException;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -37,6 +38,13 @@ public class GlobalExceptionController {
     public ProblemDetail handleResourceNotFoundException(final ResourceNotFoundException exception) {
         final ProblemDetail problemDetail = initialiseProblemDetail(HttpStatus.NOT_FOUND, exception);
         problemDetail.setTitle("Resource not found");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(StatusTransitionException.class)
+    public ProblemDetail handleStatusTransitionException(final StatusTransitionException exception) {
+        final ProblemDetail problemDetail = initialiseProblemDetail(HttpStatus.UNPROCESSABLE_ENTITY, exception);
+        problemDetail.setTitle("Status could not be changed");
         return problemDetail;
     }
 
