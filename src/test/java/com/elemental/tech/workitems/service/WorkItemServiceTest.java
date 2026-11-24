@@ -51,7 +51,7 @@ class WorkItemServiceTest {
     }
 
     @Test
-    void workItemInDb_patchWithOutOfDateVersion_throwsOptimisticLockingException(){
+    void workItemInDb_requestHasOutOfDateVersion_patch_throwsOptimisticLockingException(){
         final WorkItem mockWorkItem = Mockito.mock(WorkItem.class);
         Mockito.when(mockWorkItem.getVersion()).thenReturn(2L);
         final PatchWorkItemModel patchWorkItemModel = new PatchWorkItemModel(ID, 1L, WorkItem.Status.IN_PROGRESS);

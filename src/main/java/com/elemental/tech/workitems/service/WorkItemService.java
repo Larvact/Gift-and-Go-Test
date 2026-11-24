@@ -52,11 +52,12 @@ public class WorkItemService {
         final WorkItem workItem = findById(patchWorkItemModel.id());
         final long upToDateVersion = workItem.getVersion();
         final long requestVersion = patchWorkItemModel.version();
-        if(requestVersion < upToDateVersion){
+        if(requestVersion != upToDateVersion){
             throw new OptimisticLockingException(String.format("Failed to patch the WorkItem with id: %s as the requested version is out of date", patchWorkItemModel.id()));
         }
-
-        return null;
+        workItem.transitionTo(patchWorkItemModel.status());
+        WorkItem saved = repository.save(workItem);
+        return WorkItemMapper.toResponse(saved);
     }
 
     private WorkItem findById(final long id){
