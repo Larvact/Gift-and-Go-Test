@@ -59,16 +59,6 @@ public class WorkItem {
         this.updatedAt = this.createdAt;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
-        touch();
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-        touch();
-    }
-
     public void transitionTo(Status newStatus) {
         if(this.status != null && !this.status.isNewStatusValid().test(newStatus)){
             throw new StatusTransitionException(String.format("Cannot transition from status: %s to new status %s", this.status.name(), newStatus.name()));
