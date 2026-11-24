@@ -17,6 +17,12 @@ spring:
       hibernate:
         format_sql: true
     open-in-view: false
+  server:
+    port: ${PORT:8081}
+    shutdown: graceful
+  spring:
+    lifecycle:
+      timeout-per-shutdown-phase: ${TIMEOUT_BEFORE_SHUTDOWN:30s}
 
 logging:
   level:
